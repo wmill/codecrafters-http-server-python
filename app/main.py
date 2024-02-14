@@ -18,7 +18,15 @@ def main():
         data = server_socket.recv(1024)
         if not data:
             break
-        server_socket.send("HTTP/1.1 200 OK\r\n\r\n".encode("ascii"))
+        stringData = data.decode("ascii")
+        lines = stringData.split("\r\n")
+        verb, path, protocol = lines[0].split(" ")
+        if verb == "GET":
+            if path == "/":
+                server_socket.send("HTTP/1.1 200 OK\r\n\r\nHello, World!".encode("ascii"))
+            else:
+                server_socket.send("HTTP/1.1 404 Not Found\r\n\r\n".encode("ascii"))
+        # server_socket.send("HTTP/1.1 200 OK\r\n\r\n".encode("ascii"))
         server_socket.close()
 
 
