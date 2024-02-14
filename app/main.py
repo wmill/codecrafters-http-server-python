@@ -1,6 +1,14 @@
 # Uncomment this to pass the first stage
 import socket
 
+def response(status_code, content_type, body):
+    response = "HTTP/1.1 " + status_code + "\r\n"
+    response += "Content-Type: " + content_type + "\r\n"
+    response += "Content-Length: " + str(len(body)) + "\r\n"
+    response += "\r\n"
+    response += body
+    return response
+
 
 def main():
     # You can use print statements as follows for debugging, they'll be visible when running tests.
@@ -24,6 +32,9 @@ def main():
         if verb == "GET":
             if path == "/":
                 server_socket.send("HTTP/1.1 200 OK\r\n\r\nHello, World!".encode("ascii"))
+            elif path.startswith("/echo"):
+                #server_socket.send(f"HTTP/1.1 200 OK\r\n\r\n{path[6:]}".encode("ascii"))
+                server_socket.send(response("200 OK", "text/plain", path[6:]).encode("ascii"))
             else:
                 server_socket.send("HTTP/1.1 404 Not Found\r\n\r\n".encode("ascii"))
         # server_socket.send("HTTP/1.1 200 OK\r\n\r\n".encode("ascii"))
