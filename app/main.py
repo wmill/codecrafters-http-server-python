@@ -20,6 +20,7 @@ def main():
     server.listen()
     # server_socket.accept() # wait for client
 
+
     while True:
         server_socket, config = server.accept()
         
@@ -29,12 +30,20 @@ def main():
         stringData = data.decode("ascii")
         lines = stringData.split("\r\n")
         verb, path, protocol = lines[0].split(" ")
+        headers = {}
+        for line in lines[1:]:
+            if line:
+                key, value = line.split(": ")
+                headers[key] = value
+
         if verb == "GET":
             if path == "/":
                 server_socket.send("HTTP/1.1 200 OK\r\n\r\nHello, World!".encode("ascii"))
             elif path.startswith("/echo"):
                 #server_socket.send(f"HTTP/1.1 200 OK\r\n\r\n{path[6:]}".encode("ascii"))
                 server_socket.send(response("200 OK", "text/plain", path[6:]).encode("ascii"))
+            elif path.startswith("/user-agent"):
+                server_socket.send(response("200 OK", "text/plain", headers["User-Agent"]).encode("ascii"))
             else:
                 server_socket.send("HTTP/1.1 404 Not Found\r\n\r\n".encode("ascii"))
         # server_socket.send("HTTP/1.1 200 OK\r\n\r\n".encode("ascii"))
