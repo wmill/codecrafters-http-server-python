@@ -15,6 +15,10 @@ def response(status_code, content_type, body):
     return response
 
 
+def response_404():
+    return "HTTP/1.1 404 Not Found\r\n\r\n".encode("ascii")
+
+
 def handle_request(client_socket):
     data = client_socket.recv(1024)
     if not data:
@@ -46,7 +50,15 @@ def handle_request(client_socket):
             except FileNotFoundError:
                 client_socket.send("HTTP/1.1 404 Not Found\r\n\r\n".encode("ascii"))
         else:
-            client_socket.send("HTTP/1.1 404 Not Found\r\n\r\n".encode("ascii"))
+            client_socket.send(response_404())
+    elif verb == "POST":
+        if path.startswith("/files"):
+            filename = path[len("/files"):]
+            with open(global_args.directory + filename, "wb") as file:
+                file.write(bodyData)
+            client_socket.send("HTTP/1.1 201 OK\r\n\r\n".encode("ascii"))
+    else:
+        client_socket.send(response_404())
     # server_socket.send("HTTP/1.1 200 OK\r\n\r\n".encode("ascii"))
     client_socket.close()
     
