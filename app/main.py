@@ -7,19 +7,25 @@ import gzip
 global_args = {}
 
 def create_response(status_code, content_type, body, handles_gzip=False):
+    
+    if isinstance(body, str):
+        body = body.encode("utf-8")
+    
+    encoded_body = None
+    if handles_gzip:
+        encoded_body = gzip.compress(body)
+    else:
+        encoded_body = body
+
     response = "HTTP/1.1 " + status_code + "\r\n"
     if handles_gzip:
         response += "Content-Encoding: gzip\r\n"
     response += "Content-Type: " + content_type + "\r\n"
-    response += "Content-Length: " + str(len(body)) + "\r\n"
+    response += "Content-Length: " + str(len(encoded_body)) + "\r\n"
     response += "\r\n"
     response = response.encode("ascii")
-    if handles_gzip:
-        response += gzip.compress(body.encode("ascii"))
-    elif isinstance(body, str):
-        response += body.encode("ascii")
-    else:
-        response += body
+
+    response += encoded_body
     return response
 
 
