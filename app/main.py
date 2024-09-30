@@ -2,16 +2,24 @@
 import socket
 import threading
 import argparse
+import gzip
 
 global_args = {}
 
-def response(status_code, content_type, body):
+def create_response(status_code, content_type, body, handles_gzip=False):
     response = "HTTP/1.1 " + status_code + "\r\n"
+    if handles_gzip:
+        response += "Content-Encoding: gzip\r\n"
     response += "Content-Type: " + content_type + "\r\n"
     response += "Content-Length: " + str(len(body)) + "\r\n"
     response += "\r\n"
     response = response.encode("ascii")
-    response += body
+    if handles_gzip:
+        response += gzip.compress(body.encode("ascii"))
+    elif isinstance(body, str):
+        response += body.encode("ascii")
+    else:
+        response += body
     return response
 
 
@@ -34,32 +42,38 @@ def handle_request(client_socket):
             key, value = line.split(": ")
             headers[key] = value
 
+    handlesGzip = False
+    if "Accept-Encoding" in headers:
+        if "gzip" in headers["Accept-Encoding"]:
+            handlesGzip = True
+
+    response = None
     if verb == "GET":
         if path == "/":
-            client_socket.send("HTTP/1.1 200 OK\r\n\r\nHello, World!".encode("ascii"))
+            response = create_response("200 OK", "text/html", "<h1>Hello, World!</h1>", handlesGzip)
         elif path.startswith("/echo"):
-            #server_socket.send(f"HTTP/1.1 200 OK\r\n\r\n{path[6:]}".encode("ascii"))
-            client_socket.send(response("200 OK", "text/plain", path[6:].encode("ascii")))
+            response = create_response("200 OK", "text/plain", path[6:], handlesGzip)
         elif path.startswith("/user-agent"):
-            client_socket.send(response("200 OK", "text/plain", headers["User-Agent"].encode("ascii")))
+            response = create_response("200 OK", "text/plain", headers["User-Agent"], handlesGzip)
         elif path.startswith("/files"):
             try:
                 filename = path[len("/files"):]
                 with open(global_args.directory + filename, "rb") as file:
-                    client_socket.send(response("200 OK", "application/octet-stream", file.read()))
+                    response = create_response("200 OK", "application/octet-stream", file.read())
             except FileNotFoundError:
-                client_socket.send("HTTP/1.1 404 Not Found\r\n\r\n".encode("ascii"))
+                response = response_404()
         else:
-            client_socket.send(response_404())
+            response = response_404()
     elif verb == "POST":
         if path.startswith("/files"):
             filename = path[len("/files"):]
             with open(global_args.directory + filename, "wb") as file:
                 file.write(bodyData)
-            client_socket.send("HTTP/1.1 201 OK\r\n\r\n".encode("ascii"))
+            response = "HTTP/1.1 201 Created\r\n\r\n".encode("ascii")
     else:
-        client_socket.send(response_404())
-    # server_socket.send("HTTP/1.1 200 OK\r\n\r\n".encode("ascii"))
+        response = response_404()
+
+    client_socket.send(response)
     client_socket.close()
     
 
@@ -85,7 +99,7 @@ def main():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Toy HTTP server")
-    parser.add_argument("--directory", type=str, help="Directory to serve static files from", default="./files")
+    parser.add_argument("--directory", type=str, help="Directory to serve static files from", default="/tmp/")
     args = parser.parse_args()
     global_args = args
 
