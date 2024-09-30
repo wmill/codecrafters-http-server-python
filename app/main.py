@@ -79,11 +79,6 @@ def handle_request(client_socket):
 
 
 def main():
-    # You can use print statements as follows for debugging, they'll be visible when running tests.
-    print("Logs from your program will appear here!")
-
-    # Uncomment this to pass the first stage
-    #
     server = socket.create_server(("localhost", 4221), reuse_port=True)
     server.listen()
     # server_socket.accept() # wait for client
