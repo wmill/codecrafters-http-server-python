@@ -1,4 +1,3 @@
-# Uncomment this to pass the first stage
 import socket
 import threading
 import argparse
@@ -87,8 +86,6 @@ def handle_request(client_socket):
 def main():
     server = socket.create_server(("localhost", 4221), reuse_port=True)
     server.listen()
-    # server_socket.accept() # wait for client
-
 
     while True:
         client_socket, config = server.accept()
